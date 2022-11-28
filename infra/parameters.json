@@ -1,0 +1,36 @@
+{
+    "Parameters": [
+        {
+            "ParameterKey": "VPC",
+            "ParameterValue": "vpc-0de547e4ddd29153e"
+        },
+        {
+            "ParameterKey": "SubnetOne",
+            "ParameterValue": "subnet-0dfdb140f019ae02c"
+        },
+        {
+            "ParameterKey": "SubnetTwo",
+            "ParameterValue": "subnet-097db20c029235696"
+        },
+        {
+            "ParameterKey": "ContainerPort",
+            "ParameterValue": 80
+        },
+        {
+            "ParameterKey": "ClusterName",
+            "ParameterValue": "podfy-user-worker"
+        },
+        {
+            "ParameterKey": "LoadBalancerPort",
+            "ParameterValue": 80
+        },
+        {
+            "ParameterKey": "SQSQueueName",
+            "ParameterValue": "podfy-user-queue"
+        },
+        {
+            "ParameterKey": "Environment",
+            "ParameterValue": "dev"
+        }
+    ]
+}

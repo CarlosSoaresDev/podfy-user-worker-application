@@ -1,0 +1,41 @@
+{
+  "profiles": {
+    "podfy_user_worker_application": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "dev",
+        "SQS_URL": "your_sqs",
+        "EMAIL_SENDER": "your_email@gmail.com"
+      },
+      "dotnetRunMessages": true,
+      "applicationUrl": "http://localhost:5080"
+    },
+    "IIS Express": {
+      "commandName": "IISExpress",
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "dev",
+        "SQS_URL": "https://sqs.us-east-1.amazonaws.com/334110295592/podfy-user-queue",
+        "EMAIL_SENDER": "carlosalvesg12@gmail.com"
+      }
+    },
+    "Docker": {
+      "commandName": "Docker",
+      "launchBrowser": true,
+      "launchUrl": "{Scheme}://{ServiceHost}:{ServicePort}/swagger",
+      "publishAllPorts": true
+    }
+  },
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+  "iisSettings": {
+    "windowsAuthentication": false,
+    "anonymousAuthentication": true,
+    "iisExpress": {
+      "applicationUrl": "http://localhost:18367",
+      "sslPort": 0
+    }
+  }
+}

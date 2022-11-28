@@ -1,0 +1,105 @@
+name: Infra user application
+
+env:
+  service-name: services-podfy-user-worker
+  container-name: podfy-user-worker
+  working-directory-test:  ./app/test/podfy-user-worker-application.test/
+  working-directory-build: ./app/src/podfy-user-worker-application/   
+  working-directory-root: ./ 
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [master]
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@master 
+
+    - name: Setup .NET      
+      uses: actions/setup-dotnet@v3
+      with:
+       dotnet-version: 6.0.x
+
+    - name: Restore dependencies
+      run: dotnet restore
+      working-directory: ${{env.working-directory-build}}    
+
+    - name: Build
+      run: dotnet build --no-restore
+      working-directory: ${{env.working-directory-build}}  
+
+    - name: Unit Test
+      run: dotnet test --no-build --verbosity normal
+      working-directory: ${{env.working-directory-test}}  
+
+  deploy:
+    name: Deploy       
+    runs-on: ubuntu-latest
+    needs: build
+    steps:  
+     - name: Checkout
+       uses: actions/checkout@master 
+
+     - name: root directory
+       run: ls -R
+       working-directory: ${{env.worker-directory-root}}         
+    
+     - name: Configure AWS credentials
+       id: credentialsaws
+       uses: aws-actions/configure-aws-credentials@v1
+       with:
+         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+         aws-region: ${{ secrets.AWS_REGION }}
+
+     - name: Login to Amazon ECR
+       id: login-ecr
+       uses: aws-actions/amazon-ecr-login@v1
+
+     - name: Build, tag, and push image to Amazon ECR
+       id: build-image
+       env:
+         ecr_registry: ${{ steps.login-ecr.outputs.registry }} 
+         parameters: ($(jq -r '.Parameters[] | [.ParameterKey, .ParameterValue] | "\(.[0])=\(.[1])"' ./infra/parameters.json))
+       run: |
+           aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{secrets.AWS_ACCOUNT}}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+           docker build -t ${{env.container-name}} ./app/
+           docker tag ${{env.container-name}}:latest ${{secrets.AWS_ACCOUNT}}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{env.container-name}}:latest
+           docker push ${{secrets.AWS_ACCOUNT}}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{env.container-name}}:latest
+           echo "::set-output name=image::${{secrets.AWS_ACCOUNT}}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{env.container-name}}"
+      #  run: |
+      #      docker build -t $ecr_registry/$container-name:latest ./app/
+      #      docker push $ecr_registry/$container-name:latest
+      #      echo "::set-output name=image::$ecr_registry/$container-name:latest"
+
+     - name: AWS Deploy CloudFormation Stack
+      #### Dynamic parameters for json file
+       run: |
+           parameters=($(jq -r '.Parameters[] | [.ParameterKey, .ParameterValue] | "\(.[0])=\(.[1])"' ./infra/parameters.json)) 
+           echo ${parameters[@]}
+           aws cloudformation deploy \
+           --template-file ./infra/template.yaml \
+           --capabilities CAPABILITY_NAMED_IAM \
+           --parameter-overrides  ${parameters[@]} DockerImage=${{ steps.build-image.outputs.image }} EmailSender=${{ secrets.EMAIL_SENDER }} ServiceName=${{env.service-name}} AccessKey=${{ secrets.AWS_ACCESS_KEY_ID }} SecretKey=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
+           --stack-name ${{env.service-name}}
+ 
+      #### Manual parameters
+      #  uses: aws-actions/aws-cloudformation-github-deploy@v1.0.3
+      #  with:
+      #    name: ${{env.service-name}}
+      #    template: ./infra/template.yaml
+      #    capabilities: CAPABILITY_NAMED_IAM
+      #    parameter-overrides: >-
+      #     DockerImage=${{ steps.build-image.outputs.image }},
+      #     ServiceName=${{env.service-name}},
+      #     AccessKey=${{ secrets.AWS_ACCESS_KEY_ID }},
+      #     SecretKey=${{ secrets.AWS_SECRET_ACCESS_KEY }},
+      #    no-fail-on-empty-changeset: "1"        
+         
