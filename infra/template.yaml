@@ -147,7 +147,7 @@ Resources:
   TargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
-      Name: !Join ['', [!Ref ServiceName, TargetGroup]]
+      Name: !Join ['', [!Ref ServiceName, tg]]
       Port: !Ref ContainerPort
       Protocol: HTTP
       TargetType: ip
