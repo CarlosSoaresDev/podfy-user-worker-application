@@ -1,23 +1,19 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: Cloudformation to user worker with service.
+Description: Up services to user worker application [Roles, SG, Ecs and LogGroup]
 
 Parameters:
   VPC:
     Type: String
-  SubnetOne:
+  PrivateSubnetOne:
     Type: String
-  SubnetTwo:
+  PrivateSubnetTwo:
     Type: String
   DockerImage:
     Type: String
   ServiceName:
     Type: String
-  ContainerPort:
-    Type: Number
   ClusterName:
     Type: String
-  LoadBalancerPort:
-    Type: Number
   Environment:
     Description: Name of the environment launch.
     Type: String
@@ -31,46 +27,9 @@ Parameters:
     Type: String
 
 Resources:
-
-  TaskDefinition:
-    Type: AWS::ECS::TaskDefinition
-    DependsOn: LogGroup
-    Properties:
-      Family: !Join ['', [!Ref ServiceName, TaskDefinition]]
-      NetworkMode: awsvpc
-      RequiresCompatibilities:
-        - FARGATE
-      Cpu: 256
-      Memory: 512
-      ExecutionRoleArn: !Ref ExecutionRole
-      TaskRoleArn: !Ref TaskRole
-      ContainerDefinitions:
-        - Name: !Ref ServiceName
-          Image: !Ref DockerImage
-          PortMappings:
-            - ContainerPort: !Ref ContainerPort
-              Protocol: TCP
-          Essential: true
-          Environment:
-            - Name: "ENVIRONMENT"
-              Value: !Ref Environment
-            - Name: "ASPNETCORE_ENVIRONMENT"
-              Value: !Ref Environment
-            - Name: "SQS_URL"
-              Value: !Sub https://sqs.${AWS::Region}.amazonaws.com/${AWS::AccountId}/${SQSQueueName}
-            - Name: "ACCESS_KEY"
-              Value: !Ref AccessKey
-            - Name: "SECRET_KEY"
-              Value: !Ref SecretKey
-            - Name: "EMAIL_SENDER"
-              Value: !Ref EmailSender
-          LogConfiguration:
-            LogDriver: awslogs
-            Options:
-              awslogs-region: !Ref AWS::Region
-              awslogs-group: !Ref LogGroup
-              awslogs-stream-prefix: ecs
-
+# -------------------------------------------------------------------------
+# Deploy IAM Role to ECS
+# -------------------------------------------------------------------------
   ExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -95,28 +54,54 @@ Resources:
               Service: ecs-tasks.amazonaws.com
             Action: 'sts:AssumeRole'
 
+# -------------------------------------------------------------------------
+# Deploy SG Ec2
+# -------------------------------------------------------------------------
   ContainerSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: !Join ['', [!Ref ServiceName, ContainerSecurityGroup]]
       VpcId: !Ref VPC
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: !Ref ContainerPort
-          ToPort: !Ref ContainerPort
-          SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
 
-  LoadBalancerSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
+# -------------------------------------------------------------------------
+# Deploy ECS Fargate service and Tasks definition
+# -------------------------------------------------------------------------
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    DependsOn: LogGroup
     Properties:
-      GroupDescription: !Join ['', [!Ref ServiceName, LoadBalancerSecurityGroup]]
-      VpcId: !Ref VPC
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: !Ref LoadBalancerPort
-          ToPort: !Ref LoadBalancerPort
-          CidrIp: 0.0.0.0/0
-
+      Family: !Join ['', [!Ref ServiceName, TaskDefinition]]
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: 256
+      Memory: 512
+      ExecutionRoleArn: !Ref ExecutionRole
+      TaskRoleArn: !Ref TaskRole
+      ContainerDefinitions:
+        - Name: !Ref ServiceName
+          Image: !Ref DockerImage
+          Essential: true
+          Environment:
+            - Name: "ENVIRONMENT"
+              Value: !Ref Environment
+            - Name: "ASPNETCORE_ENVIRONMENT"
+              Value: !Ref Environment
+            - Name: "SQS_URL"
+              Value: !Sub https://sqs.${AWS::Region}.amazonaws.com/${AWS::AccountId}/${SQSQueueName}
+            - Name: "ACCESS_KEY"
+              Value: !Ref AccessKey
+            - Name: "SECRET_KEY"
+              Value: !Ref SecretKey
+            - Name: "EMAIL_SENDER"
+              Value: !Ref EmailSender
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-region: !Ref AWS::Region
+              awslogs-group: !Ref LogGroup
+              awslogs-stream-prefix: ecs
+ 
   Service:
     Type: AWS::ECS::Service
     DependsOn:
@@ -128,53 +113,21 @@ Resources:
       DeploymentConfiguration:
         MinimumHealthyPercent: 100
         MaximumPercent: 200       
-      DesiredCount: 2
+      DesiredCount: 1
       HealthCheckGracePeriodSeconds: 400
       LaunchType: FARGATE
       NetworkConfiguration: 
         AwsvpcConfiguration:
-          AssignPublicIp: ENABLED
+          AssignPublicIp: DISABLED
           Subnets:
-            - !Ref SubnetOne
-            - !Ref SubnetTwo
+            - !Ref PrivateSubnetOne
+            - !Ref PrivateSubnetTwo
           SecurityGroups:
             - !Ref ContainerSecurityGroup
-      LoadBalancers:
-        - ContainerName: !Ref ServiceName
-          ContainerPort: !Ref ContainerPort
-          TargetGroupArn: !Ref TargetGroup 
 
-  TargetGroup:
-    Type: AWS::ElasticLoadBalancingV2::TargetGroup
-    Properties:
-      Name: !Join ['', [!Ref ServiceName, tg]]
-      Port: !Ref ContainerPort
-      Protocol: HTTP
-      TargetType: ip
-      VpcId: !Ref VPC
-
-  Listener:
-    Type: AWS::ElasticLoadBalancingV2::Listener
-    Properties:
-      DefaultActions:
-        - TargetGroupArn: !Ref TargetGroup
-          Type: forward
-      LoadBalancerArn: !Ref LoadBalancer
-      Port: !Ref LoadBalancerPort
-      Protocol: HTTP
-
-  LoadBalancer:
-    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
-    Properties:
-      Name: !Sub '${ServiceName}-lb'
-      Type: application
-      Scheme: internet-facing
-      SecurityGroups:
-        - !Ref LoadBalancerSecurityGroup
-      Subnets:
-        - !Ref SubnetOne
-        - !Ref SubnetTwo
-
+# -------------------------------------------------------------------------
+# Deploy Log group
+# -------------------------------------------------------------------------
   LogGroup:
     Type: AWS::Logs::LogGroup
     Properties:

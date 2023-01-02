@@ -5,24 +5,16 @@
             "ParameterValue": "vpc-0abf8d3c3d1b75b8f"
         },
         {
-            "ParameterKey": "SubnetOne",
+            "ParameterKey": "PrivateSubnetOne",
             "ParameterValue": "subnet-0744dc576e9d78b24"
         },
         {
-            "ParameterKey": "SubnetTwo",
+            "ParameterKey": "PrivateSubnetTwo",
             "ParameterValue": "subnet-0052e20ffdc54e2b6"
-        },
-        {
-            "ParameterKey": "ContainerPort",
-            "ParameterValue": 80
         },
         {
             "ParameterKey": "ClusterName",
             "ParameterValue": "podfy-user-worker"
-        },
-        {
-            "ParameterKey": "LoadBalancerPort",
-            "ParameterValue": 80
         },
         {
             "ParameterKey": "SQSQueueName",
