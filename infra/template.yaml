@@ -163,7 +163,7 @@ Resources:
         - '/'
         - - service
           - !Ref ClusterName
-          - !GetAtt ServiceName.Name
+          - !GetAtt Service.Name
       ScalableDimension: ecs:service:DesiredCount
       ServiceNamespace: ecs
       RoleARN: !GetAtt AutoScalingRole.Arn
