@@ -112,7 +112,6 @@ Resources:
         MinimumHealthyPercent: 100
         MaximumPercent: 200       
       DesiredCount: 1
-      HealthCheckGracePeriodSeconds: 400
       LaunchType: FARGATE
       NetworkConfiguration: 
         AwsvpcConfiguration:
