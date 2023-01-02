@@ -2,15 +2,15 @@
     "Parameters": [
         {
             "ParameterKey": "VPC",
-            "ParameterValue": "vpc-0abf8d3c3d1b75b8f"
+            "ParameterValue": "vpc-09437cf84703ff1bb"
         },
         {
             "ParameterKey": "PrivateSubnetOne",
-            "ParameterValue": "subnet-0744dc576e9d78b24"
+            "ParameterValue": "subnet-027e0cc9599b8a957"
         },
         {
             "ParameterKey": "PrivateSubnetTwo",
-            "ParameterValue": "subnet-0052e20ffdc54e2b6"
+            "ParameterValue": "subnet-060328fadbb359aa3"
         },
         {
             "ParameterKey": "ClusterName",
