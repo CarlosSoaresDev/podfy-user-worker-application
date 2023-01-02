@@ -9,9 +9,4 @@ builder.Services.AddHostedService<WorkerScheduler>();
 
 var app = builder.Build();
 
-app.MapGet("/", () =>
-{
-    return "Email worker its running";
-});
-
 app.Run();

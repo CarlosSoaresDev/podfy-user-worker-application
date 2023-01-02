@@ -23,6 +23,7 @@ public class WorkerScheduler : BackgroundService
     {
         try
         {
+            _logger.LogInformation("Start job worker");
             var queueUrl = Environment.GetEnvironmentVariable("SQS_URL");
 
             while (!stoppingToken.IsCancellationRequested)
@@ -30,7 +31,7 @@ public class WorkerScheduler : BackgroundService
                 var request = new ReceiveMessageRequest
                 {
                     QueueUrl = queueUrl,
-                    WaitTimeSeconds = 3,
+                    WaitTimeSeconds = 2,
                     MaxNumberOfMessages = 10
                 };
 
@@ -44,9 +45,9 @@ public class WorkerScheduler : BackgroundService
                         {
                             var responseDeletedQueue = await _sQSQueueService.DeleteMessageAsync(queueUrl, message.ReceiptHandle);
                             if (responseDeletedQueue.HttpStatusCode == System.Net.HttpStatusCode.OK)
-                                _logger.LogInformation($"Item {message.ReceiptHandle} is deleted");
+                                _logger.LogInformation($"Item {message.MessageId} is deleted");
                             else
-                                _logger.LogError($"Item {message.ReceiptHandle} is not deleted");
+                                _logger.LogError($"Item {message.MessageId} is not deleted");
                         }
                     }
                 }
